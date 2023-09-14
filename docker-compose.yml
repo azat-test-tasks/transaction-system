@@ -1,0 +1,55 @@
+version: '3.3'
+services:
+  db:
+    container_name: transaction-mariadb
+    image: mariadb/server:latest
+    restart: unless-stopped
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: poHae2quisah8pog
+      MYSQL_DATABASE: TransactionDB
+      MYSQL_USER: TransactionUser
+      MYSQL_PASSWORD: ze2queeghuyaYie2
+    volumes:
+      - dbdata:/var/lib/mysql
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_unicode_ci"]
+
+  web:
+    build: .
+    volumes:
+      - .:/app
+      - static_volume:/app/static/
+      - media_volume:/app/media/
+    image: transaction-web
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    env_file:
+      - ./.env
+    command: >
+      /bin/sh -c "poetry run python manage.py migrate --no-input 
+      && poetry run python manage.py collectstatic --no-input 
+      && poetry run gunicorn config.wsgi:application --bind 0.0.0.0:8000"
+    restart: always
+
+  nginx:
+    build: ./nginx
+    image: transaction-nginx
+    container_name: nginx
+    volumes:
+      - static_volume:/app/static/
+      - media_volume:/app/media/
+    ports:
+      - "80:80"
+    depends_on:
+      - web
+    env_file:
+      - .env
+    restart: always
+
+volumes:
+  media_volume:
+  static_volume:
+  dbdata:
